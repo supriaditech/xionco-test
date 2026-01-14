@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AI Assistant - Store Admin</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      body {
+        font-family: "Inter", sans-serif;
+      }
+
+      /* Perbaikan Render Markdown */
+      .prose-sm ul {
+        list-style-type: disc !important;
+        padding-left: 1.5rem !important;
+        margin: 10px 0 !important;
+      }
+      .prose-sm table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 15px 0;
+        font-size: 11px;
+        border: 1px solid #e2e8f0;
+      }
+      .prose-sm th {
+        background: #4f46e5;
+        color: white;
+        padding: 8px;
+        text-align: left;
+      }
+      .prose-sm td {
+        border: 1px solid #e2e8f0;
+        padding: 6px 8px;
+      }
+      .prose-sm tr:nth-child(even) {
+        background: #f8fafc;
+      }
+      .prose-sm p {
+        margin-bottom: 8px;
+      }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  </head>
+  <body class="bg-gray-50 h-screen flex flex-col">
+    <%- include('layouts/navbar') %>
+
+    <main
+      class="flex-1 max-w-4xl w-full mx-auto bg-white shadow-sm border-x border-gray-100 flex flex-col overflow-hidden relative"
+    >
+      <div
+        class="p-4 border-b border-gray-100 flex items-center gap-3 bg-white/80 backdrop-blur-md sticky top-0 z-10"
+      >
+        <div
+          class="w-10 h-10 bg-indigo-100 rounded-full flex items-center justify-center text-xl"
+        >
+          🤖
+        </div>
+        <div>
+          <h2 class="font-bold text-gray-900 text-sm md:text-base">
+            AI Store Assistant
+          </h2>
+          <div class="flex items-center gap-1.5">
+            <span class="w-2 h-2 bg-green-500 rounded-full"></span>
+            <span
+              class="text-[10px] text-gray-500 uppercase font-bold tracking-wider"
+              >Online | Berbasis Data Toko</span
+            >
+          </div>
+        </div>
+      </div>
+
+      <div
+        id="chat-box"
+        class="flex-1 overflow-y-auto p-4 md:p-6 space-y-4 pb-32 md:pb-6"
+      >
+        <div class="flex items-start gap-3">
+          <div
+            class="w-8 h-8 bg-indigo-50 rounded-full flex-shrink-0 flex items-center justify-center text-sm"
+          >
+            🤖
+          </div>
+          <div
+            class="bg-gray-100 text-gray-800 p-3 rounded-2xl rounded-tl-none max-w-[85%] text-sm shadow-sm"
+          >
+            Halo Admin! Saya asisten AI Anda. Saya memiliki akses ke data produk
+            dan stok Anda. Ada yang ingin ditanyakan tentang kondisi toko saat
+            ini?
+          </div>
+        </div>
+      </div>
+
+      <div
+        class="p-4 bg-white border-t border-gray-100 sticky bottom-16 md:bottom-0"
+      >
+        <div class="max-w-3xl mx-auto relative flex items-center gap-2">
+          <input
+            type="text"
+            id="userInput"
+            onkeypress="if(event.key === 'Enter') sendMessage()"
+            placeholder="Tanya stok kopi, total penjualan..."
+            class="flex-1 bg-gray-50 border border-gray-200 rounded-2xl px-4 py-3 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none transition-all"
+          />
+          <button
+            onclick="sendMessage()"
+            id="sendBtn"
+            class="bg-indigo-600 hover:bg-indigo-700 text-white p-3 rounded-2xl shadow-md transition active:scale-95 flex items-center justify-center"
+          >
+            <svg
+              class="w-5 h-5"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"
+              ></path>
+            </svg>
+          </button>
+        </div>
+        <p class="text-center text-[10px] text-gray-400 mt-2">
+          AI dapat membuat kesalahan, mohon verifikasi data penting.
+        </p>
+      </div>
+    </main>
+
+    <script>
+      const chatBox = document.getElementById("chat-box");
+      const userInput = document.getElementById("userInput");
+      const sendBtn = document.getElementById("sendBtn");
+
+      async function sendMessage() {
+        const message = userInput.value.trim();
+        if (!message) return;
+
+        appendMessage("user", message);
+        userInput.value = "";
+
+        const loadingId = "loading-" + Date.now();
+        appendLoading(loadingId);
+
+        try {
+          const response = await fetch("/ai/ask", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ message: message }),
+          });
+
+          const data = await response.json();
+
+          document.getElementById(loadingId).remove();
+          appendMessage("ai", data.reply);
+        } catch (error) {
+          document.getElementById(loadingId).remove();
+          appendMessage(
+            "ai",
+            "Maaf, sepertinya ada masalah koneksi dengan otak AI saya. Coba lagi nanti ya!"
+          );
+        }
+      }
+
+      function appendMessage(sender, text) {
+        const wrapper = document.createElement("div");
+        wrapper.className =
+          sender === "user" ? "flex justify-end" : "flex items-start gap-3";
+
+        const formattedText = sender === "ai" ? marked.parse(text) : text;
+
+        const content =
+          sender === "user"
+            ? `<div class="bg-indigo-600 text-white p-3 rounded-2xl rounded-tr-none max-w-[85%] text-sm shadow-md">${formattedText}</div>`
+            : `<div class="w-8 h-8 bg-indigo-50 rounded-full flex-shrink-0 flex items-center justify-center text-sm">🤖</div>
+               <div class="bg-gray-100 text-gray-800 p-3 rounded-2xl rounded-tl-none max-w-[85%] text-sm shadow-sm prose prose-sm">${formattedText}</div>`;
+
+        wrapper.innerHTML = content;
+        chatBox.appendChild(wrapper);
+        chatBox.scrollTop = chatBox.scrollHeight;
+      }
+
+      function appendLoading(id) {
+        const wrapper = document.createElement("div");
+        wrapper.id = id;
+        wrapper.className = "flex items-start gap-3";
+        wrapper.innerHTML = `
+                <div class="w-8 h-8 bg-indigo-50 rounded-full flex-shrink-0 flex items-center justify-center text-sm">🤖</div>
+                <div class="bg-gray-100 p-3 rounded-2xl rounded-tl-none flex gap-1">
+                    <span class="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce"></span>
+                    <span class="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce [animation-delay:0.2s]"></span>
+                    <span class="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce [animation-delay:0.4s]"></span>
+                </div>
+            `;
+        chatBox.appendChild(wrapper);
+        chatBox.scrollTop = chatBox.scrollHeight;
+      }
+    </script>
+  </body>
+</html>

@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Transaksi Kasir</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/choices.js/public/assets/styles/choices.min.css" />
+    
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .choices__inner {
+            border-radius: 0.5rem !important;
+            border: 1px solid #d1d5db !important;
+            background-color: white !important;
+            padding: 5px 10px !important;
+            min-height: 45px !important;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-800 pb-20 md:pb-0">
+
+    <%- include('layouts/navbar') %>
+
+    <div class="max-w-6xl mx-auto p-4 md:p-6 space-y-6 pt-6">
+        
+        <div>
+            <h1 class="text-xl md:text-2xl font-bold text-gray-900">🛒 Transaksi Kasir</h1>
+            <p class="text-xs md:text-sm text-gray-500">Input penjualan baru dan riwayat transaksi.</p>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8">
+            
+            <div class="lg:col-span-1">
+                <div class="bg-white p-5 md:p-6 rounded-xl shadow-md border border-indigo-50 lg:sticky lg:top-24">
+                    <h2 class="text-base md:text-lg font-semibold text-gray-700 mb-4 pb-2 border-b border-gray-100 flex items-center gap-2">
+                        ➕ Input Pesanan
+                    </h2>
+
+                    <form action="/transaction/buy" method="POST" id="transactionForm">
+                        <div class="space-y-4">
+                            <div>
+                                <label class="block text-[10px] md:text-xs font-bold text-gray-500 uppercase mb-1">Cari Produk</label>
+                                <select id="productSelect" name="productId" required>
+                                    <option value="" data-price="0" data-stock="0">-- Pilih Barang --</option>
+                                    <% products.forEach(p => { %>
+                                        <option value="<%= p.id %>" 
+                                                data-price="<%= p.price %>" 
+                                                data-stock="<%= p.Stock ? p.Stock.quantity : 0 %>"
+                                                <%= (p.Stock && p.Stock.quantity <= 0) ? 'disabled' : '' %> >
+                                            <%= p.name %> (Stok: <%= p.Stock ? p.Stock.quantity : 0 %>)
+                                        </option>
+                                    <% }) %>
+                                </select>
+                            </div>
+
+                            <div>
+                                <label class="block text-[10px] md:text-xs font-bold text-gray-500 uppercase mb-1">Jumlah Beli</label>
+                                <input type="number" id="quantityInput" name="quantity" value="1" min="1" required
+                                    class="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                            </div>
+
+                            <div class="bg-gray-50 p-3 md:p-4 rounded-lg border border-gray-200">
+                                <div class="flex justify-between text-[11px] md:text-xs mb-1">
+                                    <span class="text-gray-500">Harga Satuan:</span>
+                                    <span class="font-medium" id="displayPrice">Rp 0</span>
+                                </div>
+                                <div class="flex justify-between items-center border-t border-gray-200 pt-2 mt-1">
+                                    <span class="text-xs md:text-sm font-bold text-gray-700">Total:</span>
+                                    <span class="text-lg md:text-xl font-bold text-indigo-600" id="displayTotal">Rp 0</span>
+                                </div>
+                            </div>
+
+                            <button type="submit" id="submitBtn"
+                                class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-6 rounded-lg shadow-md transition duration-200 flex justify-center items-center gap-2 text-sm md:text-base">
+                                <span>💸</span> Proses Bayar
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <div class="lg:col-span-2 space-y-4">
+                <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                    <div class="bg-gray-50 px-4 py-3 border-b border-gray-100 flex justify-between items-center">
+                        <h2 class="font-semibold text-gray-700 text-sm md:text-base">📜 Riwayat Transaksi</h2>
+                        <span class="text-[10px] md:text-xs bg-gray-200 text-gray-700 px-2 py-1 rounded-full">
+                            <%= totalItems %> Data
+                        </span>
+                    </div>
+                    
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left table-fixed border-collapse">
+                            <thead class="bg-gray-50 text-[9px] md:text-xs text-gray-500 uppercase font-semibold">
+                                <tr>
+                                    <th class="w-[35%] px-3 py-3 md:px-6">Produk</th>
+                                    <th class="w-[10%] px-1 py-3 text-center">Qty</th>
+                                    <th class="w-[25%] px-1 py-3">Total</th>
+                                    <th class="w-[15%] px-1 py-3 text-center">Status</th>
+                                    <th class="w-[15%] px-3 py-3 md:px-6 text-right">Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-gray-100">
+                                <% if(transactions.length === 0) { %>
+                                    <tr><td colspan="5" class="p-6 text-center text-gray-400 text-xs italic">Belum ada transaksi.</td></tr>
+                                <% } %>
+
+                                <% transactions.forEach(tr => { %>
+                                <tr class="hover:bg-gray-50 transition">
+                                    <td class="px-3 py-3 md:px-6">
+                                        <div class="text-[10px] md:text-sm font-medium text-gray-800 truncate">
+                                            <%= tr.Product ? tr.Product.name : 'Dihapus' %>
+                                        </div>
+                                        <div class="text-[8px] md:text-[10px] text-gray-400">
+                                            <%= new Date(tr.createdAt).toLocaleTimeString('id-ID', {hour: '2-digit', minute:'2-digit'}) %>
+                                        </div>
+                                    </td>
+                                    <td class="px-1 py-3 text-center text-[10px] md:text-sm text-gray-600">
+                                        <%= tr.quantity %>
+                                    </td>
+                                    <td class="px-1 py-3 text-[10px] md:text-sm font-bold text-gray-700">
+                                        Rp<%= tr.totalPrice.toLocaleString() %>
+                                    </td>
+                                    <td class="px-1 py-3 text-center">
+                                        <% if(tr.status === 'completed') { %>
+                                            <span class="text-[8px] md:text-[10px] font-bold text-green-600 bg-green-50 px-2 py-0.5 rounded-full uppercase">Sukses</span>
+                                        <% } else { %>
+                                            <span class="text-[8px] md:text-[10px] font-bold text-red-600 bg-red-50 px-2 py-0.5 rounded-full uppercase">Batal</span>
+                                        <% } %>
+                                    </td>
+                                    <td class="px-3 py-3 md:px-6 text-right">
+                                        <% if(tr.status === 'completed') { %>
+                                            <form action="/transaction/cancel/<%= tr.id %>" method="POST" onsubmit="return confirm('Batal?');">
+                                                <button type="submit" class="text-[10px] md:text-xs font-bold text-red-500 hover:underline">Cancel</button>
+                                            </form>
+                                        <% } else { %>
+                                            <span class="text-gray-300 text-[10px]">-</span>
+                                        <% } %>
+                                    </td>
+                                </tr>
+                                <% }) %>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="flex flex-col sm:flex-row justify-between items-center gap-4 pt-2">
+                    <span class="text-xs md:text-sm text-gray-500">
+                        Hal <span class="font-bold"><%= currentPage %></span> / <%= totalPages %>
+                    </span>
+
+                    <div class="inline-flex rounded-md shadow-sm">
+                        <% if (currentPage > 1) { %>
+                        <a href="/transaction?page=<%= currentPage - 1 %>"
+                            class="px-3 py-1.5 text-xs md:text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-l-lg hover:bg-gray-50">
+                            Prev
+                        </a>
+                        <% } else { %>
+                        <span class="px-3 py-1.5 text-xs md:text-sm font-medium text-gray-300 bg-gray-50 border border-gray-300 rounded-l-lg cursor-not-allowed">
+                            Prev
+                        </span>
+                        <% } %>
+
+                        <% if (currentPage < totalPages) { %>
+                        <a href="/transaction?page=<%= currentPage + 1 %>"
+                            class="px-3 py-1.5 text-xs md:text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-r-lg hover:bg-gray-50">
+                            Next
+                        </a>
+                        <% } else { %>
+                        <span class="px-3 py-1.5 text-xs md:text-sm font-medium text-gray-300 bg-gray-50 border border-gray-300 rounded-r-lg cursor-not-allowed">
+                            Next
+                        </span>
+                        <% } %>
+                    </div>
+                </div>
+                </div>
+
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/choices.js/public/assets/scripts/choices.min.js"></script>
+    <script>
+        const element = document.getElementById('productSelect');
+        const choices = new Choices(element, {
+            searchEnabled: true,
+            itemSelectText: '',
+            placeholder: true,
+            placeholderValue: '-- Cari Produk --',
+            noResultsText: 'Produk tidak ditemukan',
+        });
+
+        const quantityInput = document.getElementById('quantityInput');
+        const displayPrice = document.getElementById('displayPrice');
+        const displayTotal = document.getElementById('displayTotal');
+        const submitBtn = document.getElementById('submitBtn');
+
+        function calculateTotal() {
+            const selectedValue = element.value;
+            const selectedOption = Array.from(element.options).find(opt => opt.value == selectedValue);
+            
+            const price = selectedOption ? (parseInt(selectedOption.getAttribute('data-price')) || 0) : 0;
+            const stock = selectedOption ? (parseInt(selectedOption.getAttribute('data-stock')) || 0) : 0;
+            const qty = parseInt(quantityInput.value) || 0;
+
+            displayPrice.innerText = 'Rp ' + price.toLocaleString();
+            displayTotal.innerText = 'Rp ' + (price * qty).toLocaleString();
+
+            if (qty > stock && price > 0) {
+                submitBtn.disabled = true;
+                submitBtn.classList.add('opacity-50', 'cursor-not-allowed');
+                displayTotal.innerText = "Stok Kurang!";
+                displayTotal.classList.add('text-red-600');
+            } else if (!selectedValue || qty <= 0) {
+                submitBtn.disabled = true;
+                submitBtn.classList.add('opacity-50', 'cursor-not-allowed');
+                displayTotal.classList.remove('text-red-600');
+            } else {
+                submitBtn.disabled = false;
+                submitBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+                displayTotal.classList.remove('text-red-600');
+            }
+        }
+
+        element.addEventListener('choice', calculateTotal);
+        quantityInput.addEventListener('input', calculateTotal);
+        calculateTotal();
+    </script>
+</body>
+</html>
