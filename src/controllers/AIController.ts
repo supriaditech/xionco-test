@@ -32,7 +32,6 @@ export const askAI = async (req: Request, res: Response) => {
     const totalOmzet = transactions.reduce((sum, tr) => sum + tr.totalPrice, 0);
     const totalQtySold = transactions.reduce((sum, tr) => sum + tr.quantity, 0);
 
-    // 4. Kirim ke OpenAI dengan instruksi yang lebih kuat
     const response = await openai.chat.completions.create({
       model: "gpt-3.5-turbo",
       messages: [
