@@ -72,6 +72,7 @@ This repository provides a foundational Node.js web application built with Expre
 4. **Initialize Database**
 
    ```bash
+   npx sequelize-cli init:migrations
    npx sequelize-cli db:migrate
    yarn seed
 
